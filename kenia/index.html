@@ -65,6 +65,7 @@
   .tag{display:inline-block;background:#1d3d33;color:#7fd7ae;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:600;}
   .tag-hist{font-size:10.5px;color:var(--muted);font-style:italic;}
   .tag-parcial{font-size:10.5px;color:#e8c766;font-style:italic;}
+  .tag-audit{font-size:10.5px;color:#6ea8fe;font-style:italic;border-bottom:1px dotted #6ea8fe;cursor:help;}
   input.sela{width:70px;text-align:right;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;}
   .empty{color:var(--muted);text-align:center;padding:30px;font-size:13px;}
   .audit{background:#12241f;border:1px solid #1e4a3a;border-radius:10px;padding:14px 16px;color:#a9e6cb;font-size:13px;line-height:1.6;margin-bottom:18px;}
@@ -544,12 +545,15 @@ function render(){
   const auditItems = [];
   periodos.forEach(function(p){
     (p.auditoria||[]).forEach(function(a){
-      auditItems.push('<div class="item">• '+periodoLabel(p)+' — '+a.cliente+' (NF '+a.nf+', '+a.data+', '+brl(a.valor_faturamento_real)+'): '+a.motivo+'</div>');
+      var cnpjTag = p.auditoria_corrigida_cnpj ? ' <span class="tag-audit" title="Este item foi corrigido cruzando o CNPJ/CPF real da nota com o histórico de compras (antes, clientes com várias filiais/CNPJs, como redes com múltiplas unidades, podiam ser agrupados só pelo nome).">(corrigido por CNPJ)</span>' : '';
+      auditItems.push('<div class="item">• '+periodoLabel(p)+' — '+a.cliente+' (NF '+a.nf+', '+a.data+', '+brl(a.valor_faturamento_real)+'): '+a.motivo+cnpjTag+'</div>');
     });
   });
   if(auditItems.length){
     auditBox.style.display='block';
-    auditBox.innerHTML = '<b>Auditoria de clientes novos</b><br>Estes lançamentos que você marcou como "cliente novo" já haviam comprado antes, por isso foram excluídos do seu bônus de clientes novos:<br>'+auditItems.join('');
+    var temCorrecaoCnpj = periodos.some(function(pp){ return pp.auditoria_corrigida_cnpj; });
+    var notaCorrecao = temCorrecaoCnpj ? '<br><span class="tag-audit" style="display:inline-block;margin-top:6px;" title="A lista abaixo foi corrigida cruzando o CNPJ/CPF de cada nota fiscal com o histórico completo de compras — a versão anterior podia classificar clientes de várias filiais (mesmo nome, CNPJs diferentes) como se fossem um só. O valor de bônus e faturamento de clientes novos JÁ PAGO nos meses marcados (corrigido por CNPJ) não foi alterado — a correção é só na explicação/lista abaixo.">(lista corrigida por auditoria de CNPJ — bônus já pago não foi alterado)</span>' : '';
+    auditBox.innerHTML = '<b>Auditoria de clientes novos</b><br>Estes lançamentos que você marcou como "cliente novo" já haviam comprado antes, por isso foram excluídos do seu bônus de clientes novos:'+notaCorrecao+'<br>'+auditItems.join('');
     auditBoxHasContent = true;
   } else {
     auditBox.style.display='none';
@@ -626,8 +630,9 @@ function render(){
     }
     const rowTotal = (p.comissao||0)+(p.bonus||0)+(p.seladoras_editable ? ((selaQty[key]!==undefined?selaQty[key]:0)*80) : (p.seladoras_valor||0));
     const auditTag = (p.auditoria && p.auditoria.length) ? ' <span class="tag-hist">(bônus ajustado por auditoria)</span>' : '';
+    const auditCnpjTag = p.auditoria_corrigida_cnpj ? ' <span class="tag-audit" title="A lista de auditoria deste mês foi corrigida via CNPJ/CPF ('+(p.qtd_correcoes_auditoria||0)+' diferença(s) em relação à versão anterior). O bônus já pago não foi alterado.">(auditoria corrigida por CNPJ)</span>' : '';
     return '<tr><td>'+periodoLabel(p)+periodoTags(p)+'</td>'+
-      '<td class="num">'+brl(p.comissao||0)+'</td><td class="num">'+brl(p.bonus||0)+auditTag+'</td>'+
+      '<td class="num">'+brl(p.comissao||0)+'</td><td class="num">'+brl(p.bonus||0)+auditTag+auditCnpjTag+'</td>'+
       '<td class="num">'+selaCell+'</td><td class="num" style="font-weight:700;color:#fff;">'+brl(rowTotal)+'</td></tr>';
   }).join('');
 
