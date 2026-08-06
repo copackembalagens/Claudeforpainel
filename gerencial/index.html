@@ -108,6 +108,9 @@
   .tabbtn.active{background:var(--panel2);color:#fff;border-bottom:2px solid var(--green);}
   .tabbtn:hover{color:#fff;}
   .goalwrap{margin-bottom:16px;}
+  .goalwrap-group{padding:12px 0;border-top:1px solid rgba(255,255,255,.08);}
+  .goalwrap-group:first-of-type{border-top:none;padding-top:0;}
+  .goalwrap-title{display:block;font-size:14px;margin-bottom:8px;color:#fff;}
   .goalhead{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:4px;}
   .goalhead b{color:#fff;}
   .goaltrack{height:18px;border-radius:6px;background:#1d2925;overflow:hidden;position:relative;}
@@ -715,6 +718,18 @@ function renderKommoGerencial(){
     evo.forEach(function(e){ realizadoTotal += e.total; realizadoNovo += e.novos; realizadoRec += e.rec; });
   });
 
+  // Meta individual por consultor (so os 3 com carteira - Joice/Eduardo/Rubs;
+  // Kenia e avaliada em nivel de equipe, ver Documento-Mestre secao 3/8).
+  const CONSULTORES_META = ['Joice','Eduardo','Rubs'];
+  const metaConsultorMensal = K.meta_consultor_mensal || 0;
+  const metaConsultorTotal = metaConsultorMensal * nMesesReais;
+  const metaPorConsultorRows = CONSULTORES_META.map(function(nome){
+    const evoC = (DATA.evolucao[nome]||[]).filter(function(e){ return selAnos.has(e.ano) && selMeses.has(e.mes); });
+    let t=0,n=0,r=0;
+    evoC.forEach(function(e){ t+=e.total; n+=e.novos; r+=e.rec; });
+    return {nome:nome, total:t, novos:n, rec:r};
+  });
+
   function goalBar(label, real, meta){
     const pct = meta>0 ? (real/meta*100) : 0;
     const cls = pct>=100 ? 'goalfill over' : 'goalfill';
@@ -797,6 +812,16 @@ function renderKommoGerencial(){
       goalBar('Clientes novos', realizadoNovo, metaNovo)+
       goalBar('Recorrentes', realizadoRec, metaRec)+
       '<p class="foot-note">Reflete a nota fiscal emitida no Omie — mesmas vendas do Kommo, reconhecidas depois do prazo de produção. Soma as 6 origens do canal: Eduardo, Joice, Rubs, Kênia, Atendimento e Site (iSet).</p>'+
+    '</div>'+
+    '<div class="card"><h2>Meta por Consultor (R$'+(metaConsultorMensal/1000).toFixed(0)+'k/mês cada — Joice, Eduardo, Rubs)</h2>'+
+      metaPorConsultorRows.map(function(c){
+        return '<div class="goalwrap-group"><b class="goalwrap-title">'+c.nome+'</b>'+
+          goalBar('Total', c.total, metaConsultorTotal)+
+          goalBar('Clientes novos', c.novos, metaConsultorTotal*K.pct_meta_novo)+
+          goalBar('Recorrentes', c.rec, metaConsultorTotal*K.pct_meta_recorrente)+
+        '</div>';
+      }).join('')+
+      '<p class="foot-note">Meta de R$500 mil do canal rateada igualmente entre os 3 consultores de carteira (R$166.666,67 cada, arredondado para R$166k). Kênia é avaliada em nível de equipe (Comissão de Supervisão), sem fatia própria desta meta.</p>'+
     '</div>'+
     '<div class="card"><h2>Top Funis</h2>'+
       '<div class="scroll"><table class="sortable"><thead><tr><th>Funil</th><th class="num">Total leads</th><th class="num">Ganhos</th>'+

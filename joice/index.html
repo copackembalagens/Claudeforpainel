@@ -681,6 +681,13 @@ function renderKommo(){
     '<div class="insight"><b>Insights para melhorar seus resultados</b>'+insights.map(function(s){ return '<div class="item">• '+s+'</div>'; }).join('')+'</div>';
 }
 
+function goalBar(label, real, meta){
+  const pct = meta>0 ? (real/meta*100) : 0;
+  const cls = pct>=100 ? 'goalfill over' : 'goalfill';
+  return '<div class="goalwrap"><div class="goalhead"><span>'+label+'</span><b>'+brl(real)+' / '+brl(meta)+'</b></div>'+
+    '<div class="goaltrack"><div class="'+cls+'" style="width:'+Math.min(pct,100).toFixed(1)+'%"></div>'+
+    '<span class="goalpct">'+pct.toFixed(0)+'%</span></div></div>';
+}
 function render(){
   const selAnos = state.applied.ano, selMeses = state.applied.mes;
   const periodos = DATA.periodos.filter(function(p){ return selAnos.has(p.ano) && selMeses.has(p.mes); });
@@ -805,6 +812,25 @@ function render(){
       '<div class="bar">'+compParts.map(function(c){ return '<div style="width:'+(c.v/sum*100).toFixed(1)+'%;background:'+c.color+';"></div>'; }).join('')+'</div>'+
       '<div class="legend">'+compParts.map(function(c){ return '<span><span class="sw" style="background:'+c.color+'"></span>'+c.lbl+': '+brl(c.v)+'</span>'; }).join('')+'</div>'+
     '</div>'+
+    (function(){
+      const metaMensal = (DATA.kommo && DATA.kommo.meta_mensal) || 0;
+      if(!metaMensal) return '';
+      const evoM = (DATA.evolucao||[]).filter(function(e){ return selAnos.has(e.ano) && selMeses.has(e.mes); });
+      const nMesesM = Math.max(evoM.length, 1);
+      const metaTotalM = metaMensal * nMesesM;
+      const pctNovoM = (DATA.kommo && DATA.kommo.pct_meta_novo) || 0.25;
+      const pctRecM = (DATA.kommo && DATA.kommo.pct_meta_recorrente) || 0.75;
+      const metaNovoM = metaTotalM * pctNovoM;
+      const metaRecM = metaTotalM * pctRecM;
+      const realTotalM = evoM.reduce(function(a,e){ return a+e.total; },0);
+      const realNovoM = evoM.reduce(function(a,e){ return a+e.novos; },0);
+      const realRecM = evoM.reduce(function(a,e){ return a+e.rec; },0);
+      return '<div class="card"><h2>Meta do período (R$'+(metaMensal/1000).toFixed(0)+'k/mês — '+(pctNovoM*100).toFixed(0)+'% clientes novos / '+(pctRecM*100).toFixed(0)+'% recorrentes)</h2>'+
+        goalBar('Total faturado', realTotalM, metaTotalM)+
+        goalBar('Clientes novos', realNovoM, metaNovoM)+
+        goalBar('Recorrentes', realRecM, metaRecM)+
+        '<p class="foot-note">Mesma meta e mesma base (Omie, líquida de frete) já usadas na aba Performance Kommo — aqui ao lado da comissão e do bônus do mês, para facilitar o acompanhamento.</p></div>';
+    })()+
     evolucaoBlock()+
     '<div class="card">'+
       '<h2>Histórico por período</h2>'+
